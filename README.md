@@ -28,11 +28,11 @@ After the desired area division is achieved, we use [Spanning Tree Coverage (STC
 
 This project was created using:
 
-* Python version >= 3.6.14
-* OpenCV version >= 4.5.2.54
-* Pygame version >= 2.0.1
+* Python version >= 3.12
+* OpenCV version >= 4.5.2
+* Pygame-CE version >= 2.5
 * Scipy version >= 1.7.1
-* nose == 1.3.7 
+* pytest
 * scikit-learn
 
 ## Installation and Running
