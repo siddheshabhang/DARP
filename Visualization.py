@@ -255,3 +255,110 @@ class darp_area_visualization(object):
          self._VARS['surf'], color,
          (x, y, dimX, dimY)
         )
+
+def interactive_mode(args):
+    pygame.init()
+    nx, ny = args.grid
+    init_pos = args.in_pos
+    portions = args.portions
+    obs_pos = set(args.obs_pos)
+    
+    # colors
+    import random
+    random.seed(1)
+    color = []
+    for r in range(len(init_pos)):
+        np.random.seed(r)
+        color.append(list(np.random.choice(range(256), size=3)))
+    
+    # window size
+    dimensions = (nx * 40, ny * 40)
+    surf = pygame.display.set_mode((dimensions[1], dimensions[0]))
+    pygame.display.set_caption("Interactive DARP Setup (Click: Obs | E: Clear | A: Voronoi | D: DARP)")
+    
+    def draw_grid():
+        surf.fill(GREY)
+        celldimX = dimensions[1] / ny
+        celldimY = dimensions[0] / nx
+        for i in range(nx):
+            for j in range(ny):
+                rect = (j*celldimX, i*celldimY, celldimX, celldimY)
+                cell_idx = i * ny + j
+                if cell_idx in obs_pos:
+                    pygame.draw.rect(surf, BLACK, rect)
+                elif cell_idx in init_pos:
+                    r_idx = init_pos.index(cell_idx)
+                    # drawing a slightly differentiated square for robot
+                    pygame.draw.rect(surf, color[r_idx], rect)
+                    pygame.draw.rect(surf, (255, 255, 255), rect, 3) 
+                pygame.draw.rect(surf, BLACK, rect, 1)
+        pygame.display.set_caption("Interactive DARP Setup (Click: Obs | E: Clear | A: Voronoi | D: DARP)")
+        pygame.display.update()
+
+    draw_grid()
+    
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
+                celldimX = dimensions[1] / ny
+                celldimY = dimensions[0] / nx
+                j = int(x // celldimX)
+                i = int(y // celldimY)
+                cell_idx = i * ny + j
+                if cell_idx not in init_pos:
+                    if cell_idx in obs_pos:
+                        obs_pos.remove(cell_idx)
+                    else:
+                        obs_pos.add(cell_idx)
+                draw_grid()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_e:
+                    obs_pos.clear()
+                    draw_grid()
+                elif event.key == pygame.K_a:
+                    assignment = np.zeros((nx, ny))
+                    for i in range(nx):
+                        for j in range(ny):
+                            idx = i * ny + j
+                            if idx in obs_pos:
+                                assignment[i, j] = len(init_pos)
+                            else:
+                                min_dist = 99999
+                                best_r = 0
+                                for r, pos in enumerate(init_pos):
+                                    rx, ry = pos // ny, pos % ny
+                                    dist = (rx-i)**2 + (ry-j)**2
+                                    if dist < min_dist:
+                                        min_dist = dist
+                                        best_r = r
+                                assignment[i, j] = best_r
+                    
+                    surf.fill(GREY)
+                    celldimX = dimensions[1] / ny
+                    celldimY = dimensions[0] / nx
+                    for i in range(nx):
+                        for j in range(ny):
+                            rect = (j*celldimX, i*celldimY, celldimX, celldimY)
+                            if assignment[i, j] == len(init_pos):
+                                pygame.draw.rect(surf, BLACK, rect)
+                            else:
+                                pygame.draw.rect(surf, color[int(assignment[i, j])], rect)
+                            
+                            idx = i * ny + j
+                            if idx in init_pos:
+                                pygame.draw.rect(surf, (255, 255, 255), rect, 3)
+                            pygame.draw.rect(surf, BLACK, rect, 1)
+                    pygame.display.set_caption("Voronoi Partitioning (Press E to Clear, D to Run DARP, Click to toggle Obs)")
+                    pygame.display.update()
+                
+                elif event.key == pygame.K_d:
+                    pygame.quit()
+                    from multiRobotPathPlanner import MultiRobotPathPlanner
+                    MultiRobotPathPlanner(nx, ny, args.nep, init_pos, portions, list(obs_pos), True)
+                    sys.exit()

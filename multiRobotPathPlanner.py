@@ -258,6 +258,8 @@ if __name__ == '__main__':
         action='store_true',
         help='Visualize results (default: False)')
     args = argparser.parse_args()
-
-
-    MultiRobotPathPlanner(args.grid[0], args.grid[1], args.nep, args.in_pos,  args.portions, args.obs_pos, args.vis)
+    if args.vis:
+        from Visualization import interactive_mode
+        interactive_mode(args)
+    else:
+        MultiRobotPathPlanner(args.grid[0], args.grid[1], args.nep, args.in_pos,  args.portions, args.obs_pos, args.vis)
